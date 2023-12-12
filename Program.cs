@@ -4,49 +4,86 @@ using System.ComponentModel;
 using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Numerics;
+using test_2;
 
-namespace test_2;
-
-class Program
+namespace test_2
 {
-    static void Main(string[] args)
-    {
-        Console.WriteLine("Hello, World!");
-    }
 
-    public class MyCollection<T> where T : struct
+    class Program
     {
-        private IList<T> _myCollection { get; set;}
-
-        private MyCollection(IList<T> collection)
+        static void Main(string[] args)
         {
-            if (collection.Count > 0)
+            SomeService service = new SomeService(); //subscriber
+            service.StartSomeProcess();
+            service.OperationDone += FinishSomeProcess;
+
+        }
+
+        public class MyCollection<T> where T : struct
+        {
+            private IList<T> _myCollection { get; set; }
+
+            private MyCollection(IList<T> collection)
             {
-                _myCollection = collection;
+                if (collection.Count > 0)
+                {
+                    _myCollection = collection;
+                }
+            }
+
+            public void AddItem(T item)
+            {
+                _myCollection.Add(item);
+            }
+
+
+            public T GetSingleItem(int index)
+            {
+                if (_myCollection.Count < index)
+                {
+                    return _myCollection.ElementAt(index - 1);
+                }
+
+                return _myCollection.ElementAt(0);
+            }
+
+            public ICollection<T> SortDescending()
+            {
+                return (ICollection<T>)_myCollection.OrderDescending();
             }
         }
 
-        public void AddItem(T item)
-        {
-            _myCollection.Add(item);
-        }
+        //handler
+        public static void FinishSomeProcess(object sender, SomeProcess arg) => Console.WriteLine($"Process has run with args: {arg.x}");
 
 
-        public T GetSingleItem(int index)
+        //publisher
+        public class SomeService
         {
-            if(_myCollection.Count < index)
+            public event EventHandler<SomeProcess> OperationDone; // eventhandler
+
+            SomeProcess process = new SomeProcess("Custom process");
+            public void StartSomeProcess()
             {
-                return _myCollection.ElementAt(index - 1);
+                Console.WriteLine($"Process has started...");
+                OnProcessCompleted(process);
             }
 
-            return _myCollection.ElementAt(0);
+            protected void OnProcessCompleted(SomeProcess arg)
+            {
+                OperationDone?.Invoke(this, arg);
+            }
         }
 
-        public ICollection<T> SortDescending()
+        public class SomeProcess : EventArgs
         {
-            return (ICollection<T>)_myCollection.OrderDescending();
-        }
-    }
+            public string x { get; set; }
 
+            public SomeProcess(string x)
+            {
+                this.x = x;
+            }
+        }
+
+    }
 }
-
